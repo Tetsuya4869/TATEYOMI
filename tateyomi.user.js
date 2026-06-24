@@ -136,7 +136,8 @@
       afterSel:   ['.p-novel__text--after',  '#novel_a'],
       prevSel:    ['.p-novel__foot--prev a', '.novel_bn a:first-child'],
       nextSel:    ['.p-novel__foot--next a', '.novel_bn a:last-child'],
-      // 目次URL: /nXXXX/5/ → /nXXXX/
+      prevPat:    [/前の話/, /前へ/, /前話/, /‹/, /←/],
+      nextPat:    [/次の話/, /次へ/, /次話/, /›/, /→/],
       tocUrl: () => {
         const parts = location.pathname.split('/').filter(Boolean);
         return `${location.origin}/${parts[0]}/`;
@@ -152,6 +153,8 @@
       afterSel:   ['.p-novel__text--after',  '#novel_a'],
       prevSel:    ['.p-novel__foot--prev a', '.novel_bn a:first-child'],
       nextSel:    ['.p-novel__foot--next a', '.novel_bn a:last-child'],
+      prevPat:    [/前の話/, /前へ/, /前話/, /‹/, /←/],
+      nextPat:    [/次の話/, /次へ/, /次話/, /›/, /→/],
       tocUrl: () => {
         const parts = location.pathname.split('/').filter(Boolean);
         return `${location.origin}/${parts[0]}/`;
@@ -165,9 +168,10 @@
       seriesSel:  ['.widget-workCard-titleLabel', '.widget-work-information h1'],
       beforeSel:  [],
       afterSel:   [],
-      prevSel:    ['a[href*="/episodes/"][aria-label*="前"]'],
+      prevSel:    ['a[href*="/episodes/"][aria-label*="前"]', '.widget-toc-episode-titleLabel + a'],
       nextSel:    ['a[href*="/episodes/"][aria-label*="次"]'],
-      // 目次URL: /works/1234/episodes/5678 → /works/1234
+      prevPat:    [/前のエピソード/, /前へ/, /前の話/],
+      nextPat:    [/次のエピソード/, /次へ/, /次の話/],
       tocUrl: () => {
         const m = location.pathname.match(/^(\/works\/[^/]+)/);
         return m ? `${location.origin}${m[1]}` : '';
@@ -179,6 +183,21 @@
     for (const sel of sels) {
       const el = scope.querySelector(sel);
       if (el) return el;
+    }
+    return null;
+  }
+
+  // CSSセレクタで見つからなければリンクテキストで探すフォールバック
+  function findNavLink(sels, patterns) {
+    for (const sel of sels) {
+      const el = document.querySelector(sel);
+      if (el?.href) return el;
+    }
+    if (!patterns?.length) return null;
+    const allLinks = [...document.querySelectorAll('a[href]')];
+    for (const pat of patterns) {
+      const found = allLinks.find(a => pat.test(a.textContent.trim()));
+      if (found?.href) return found;
     }
     return null;
   }
@@ -286,8 +305,8 @@
     // 元サイトの各要素を取得
     const episodeTitle = first(adapter.titleSel)?.textContent?.trim() ?? '';
     const seriesTitle  = first(adapter.seriesSel)?.textContent?.trim() ?? '';
-    const prevHref     = first(adapter.prevSel)?.href ?? '';
-    const nextHref     = first(adapter.nextSel)?.href ?? '';
+    const prevHref     = findNavLink(adapter.prevSel, adapter.prevPat)?.href ?? '';
+    const nextHref     = findNavLink(adapter.nextSel, adapter.nextPat)?.href ?? '';
     const tocHref      = adapter.tocUrl ? adapter.tocUrl() : '';
 
     // 前書き・本文・後書きの段落グループ
