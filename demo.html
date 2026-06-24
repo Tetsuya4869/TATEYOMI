@@ -5,27 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>なろう縦組みリーダー デモ</title>
   <style>
-    /* ページ本体（サイト本文のシミュレーション） */
-    body { font-family: sans-serif; padding: 1rem; background: #f0f0f0; color: #333; }
-    h1 { font-size: 1.1rem; }
-    .demo-controls { margin: 1rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    body { font-family: sans-serif; padding: 1rem; background: #e8e4dc; color: #333; }
+    h1 { font-size: 1rem; margin: 0 0 0.5rem; }
+    .demo-controls { margin: 0.75rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .demo-controls button {
-      padding: 0.5rem 1rem; background: #333; color: #fff;
+      padding: 0.5rem 1rem; background: #2a2520; color: #e8e0d5;
       border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
     }
+    /* なろう本文エリアのシミュレーション */
+    .p-novel__series-title { font-size: 0.8rem; color: #888; margin-bottom: 0.25rem; }
+    .p-novel__subtitle { font-size: 1.1rem; font-weight: bold; margin-bottom: 1rem; }
+    .p-novel__text--before,
+    .p-novel__text--after {
+      background: #f0ece4; padding: 0.75rem; margin: 0.5rem 0;
+      border-left: 3px solid #aaa; font-size: 0.9em;
+    }
+    .p-novel__text--before p,
+    .p-novel__text--after p { margin: 0 0 0.5em; }
     #novel_honbun p { margin: 0 0 1em; line-height: 1.9; }
+    .novel-nav { margin-top: 1rem; display: flex; gap: 1rem; }
+    .novel-nav a { color: #555; }
   </style>
 </head>
 <body>
-  <h1>縦組みリーダー デモ</h1>
+  <h1>縦組みリーダー デモ（v1.1 横スクロール）</h1>
   <div class="demo-controls">
     <button id="btn-on">縦書きON</button>
     <button id="btn-off">縦書きOFF</button>
   </div>
 
-  <!-- なろう旧形式の本文セレクタをシミュレート -->
+  <!-- なろう新UIのDOM構造をシミュレート -->
+  <p class="p-novel__series-title">転生したらチートなしだった件</p>
+  <h1 class="p-novel__subtitle">第1話　異世界の草原で目が覚めたら</h1>
+
+  <div class="p-novel__text--before">
+    <p>※この話はフィクションです。実在の人物・団体とは一切関係ありません。</p>
+    <p>今回は主人公の転生直後を描いています。ゆっくりお楽しみください。</p>
+  </div>
+
   <div id="novel_honbun">
-    <p>　第1章は、ここから始まる。主人公の名は<ruby>霧島<rt>きりしま</rt></ruby>　<ruby>颯太<rt>そうた</rt></ruby>——享年<ruby>17<rt>じゅうなな</rt></ruby>歳、転生フラグを全力で回収した青年である。</p>
+    <p>　第1話は、ここから始まる。主人公の名は<ruby>霧島<rt>きりしま</rt></ruby>　<ruby>颯太<rt>そうた</rt></ruby>——享年<ruby>17<rt>じゅうなな</rt></ruby>歳、転生フラグを全力で回収した青年である。</p>
     <p>　気づいたとき、彼は見知らぬ草原に立っていた。空は青く、風は優しく、遠くで小鳥がさえずっていた。典型的な異世界転生の幕開けだ。「また、このパターンか……」彼はため息をついた。</p>
     <p>　ステータスウィンドウが目の前に浮かぶ。《レベル1　HP：100　MP：200　スキル：チートなし》——チートなし!? それは聞いていない。</p>
     <p>　しかし颯太には、前世の記憶という最大の武器があった。2桁の計算など朝飯前だ。12×34＝408。地球では当たり前でも、魔法しか知らない世界では奇跡に等しい。</p>
@@ -34,51 +53,100 @@
     <p>　少女の名は<ruby>リーナ<rt>Lina</rt></ruby>。金の髪、緑の瞳、腰には一振りの短剣。彼女はにこりともせず、颯太を一瞥した。「……チートなし転生者? 珍しい。」</p>
     <p>　颯太は固まった。なぜ彼女は知っているのか。思わず声が漏れる。「え!?」「見りゃわかる。オーラが凡人だもの。」あまりにも直球な評価に、颯太は言葉を失った。</p>
     <p>　しかしリーナはすぐに表情を変え、小さく笑んだ。「でも——凡人が一番、長く生き残るのよ。この世界では。」その言葉の意味を、颯太はまだ知らない。</p>
-    <p>　【第1章 完】次話「街の掟と最初の試練」へ続く……</p>
+  </div>
+
+  <div class="p-novel__text--after">
+    <p>ここまで読んでいただきありがとうございました！</p>
+    <p>次回は颯太がリーナとともに街へ向かう場面を描きます。お楽しみに。</p>
+  </div>
+
+  <div class="novel-nav p-novel__foot">
+    <a href="#prev" class="p-novel__foot--prev">← 第0話（プロローグ）</a>
+    <a href="#next" class="p-novel__foot--next">第2話 →</a>
   </div>
 
   <script>
-    // overlay.css をインライン定義（demo.html では外部ファイル不要）
+    const HEADER_H = 44;
+    const FOOTER_H = 48;
+
     const OVERLAY_CSS = `
+      :root { --tate-header-h: ${HEADER_H}px; --tate-footer-h: ${FOOTER_H}px; }
       #tate-overlay {
         position: fixed; inset: 0; z-index: 2147483647;
         background: #faf8f3; color: #1a1a1a;
-        overflow-y: scroll; overflow-x: hidden;
-        scroll-snap-type: y mandatory;
+        display: flex; flex-direction: row;
+        overflow-x: scroll; overflow-y: hidden;
+        scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        font-family: "Hiragino Mincho ProN", "Yu Mincho", "游明朝", serif;
+        padding-top: var(--tate-header-h);
+        padding-bottom: var(--tate-footer-h);
+        box-sizing: border-box;
+        font-family: "Hiragino Mincho ProN","Yu Mincho","游明朝",serif;
         font-size: 18px; line-height: 1.9;
       }
       .tate-page {
-        height: 100svh; width: 100vw;
+        flex: 0 0 100vw; height: 100%;
         scroll-snap-align: start; scroll-snap-stop: always;
-        writing-mode: vertical-rl;
-        overflow: hidden;
-        padding-top: max(env(safe-area-inset-top), 1rem);
-        padding-bottom: max(env(safe-area-inset-bottom), 1rem);
-        padding-left: max(env(safe-area-inset-left), 1rem);
-        padding-right: max(env(safe-area-inset-right), 1rem);
-        box-sizing: border-box; position: relative;
+        writing-mode: vertical-rl; overflow: hidden;
+        padding-top: max(env(safe-area-inset-top),0.75rem);
+        padding-bottom: max(env(safe-area-inset-bottom),0.75rem);
+        padding-left: max(env(safe-area-inset-left),1rem);
+        padding-right: max(env(safe-area-inset-right),1rem);
+        box-sizing: border-box;
       }
       .tate-page--overflow { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .tate-page--note { background: #f5f0e8; font-size: 0.9em; }
+      .tate-page--note::before {
+        content: attr(data-label); display: block;
+        font-size: 0.7em; opacity: 0.5; margin-bottom: 0.5em; writing-mode: vertical-rl;
+      }
       .tcy { text-combine-upright: all; -webkit-text-combine: horizontal; }
       ruby { ruby-align: center; } rt { font-size: 0.5em; }
-      #tate-ctrl {
-        position: fixed; bottom: 0; left: 0; right: 0; z-index: 2147483648;
-        background: rgba(0,0,0,0.75); color: #fff;
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 0.6rem max(env(safe-area-inset-right),1rem) max(calc(env(safe-area-inset-bottom)+0.6rem),0.6rem) max(env(safe-area-inset-left),1rem);
-        font-family: -apple-system, sans-serif; font-size: 14px;
+      #tate-header {
+        position: fixed; top: 0; left: 0; right: 0;
+        height: var(--tate-header-h); padding-top: env(safe-area-inset-top,0);
+        z-index: 2147483648;
+        background: rgba(30,25,20,0.88); color: #e8e0d5;
+        display: flex; align-items: center;
+        font-family: -apple-system,sans-serif; box-sizing: border-box;
         transition: transform 0.25s ease;
       }
-      #tate-ctrl.hidden { transform: translateY(100%); }
-      #tate-ctrl button {
-        background: none; border: 1px solid rgba(255,255,255,0.4); color: #fff;
-        padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 14px;
-        cursor: pointer; -webkit-tap-highlight-color: transparent;
+      #tate-header.hidden { transform: translateY(-100%); }
+      #tate-series-title {
+        font-size: 10px; opacity: 0.55; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+        padding: 0 0.5rem; min-width: 0; flex: 0 1 auto;
       }
-      .tate-page-indicator { font-size: 13px; opacity: 0.8; }
+      #tate-episode-title {
+        font-size: 12px; font-weight: 600; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+        flex: 1 1 0; text-align: center; padding: 0 0.25rem;
+      }
+      #tate-btn-close {
+        flex: 0 0 auto; background: none; border: none; color: #e8e0d5;
+        font-size: 18px; padding: 0 0.75rem; cursor: pointer;
+        line-height: var(--tate-header-h); -webkit-tap-highlight-color: transparent;
+      }
+      #tate-footer {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: calc(var(--tate-footer-h) + env(safe-area-inset-bottom,0px));
+        padding-bottom: env(safe-area-inset-bottom,0);
+        z-index: 2147483648;
+        background: rgba(30,25,20,0.88); color: #e8e0d5;
+        display: flex; align-items: center; justify-content: space-between;
+        font-family: -apple-system,sans-serif; box-sizing: border-box;
+        transition: transform 0.25s ease;
+      }
+      #tate-footer.hidden { transform: translateY(100%); }
+      #tate-footer button {
+        background: none; border: 1px solid rgba(255,255,255,0.3); color: #e8e0d5;
+        padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 13px;
+        cursor: pointer; margin: 0 0.5rem;
+        -webkit-tap-highlight-color: transparent; white-space: nowrap;
+      }
+      #tate-footer button:disabled { opacity: 0.3; pointer-events: none; }
+      #tate-page-indicator { font-size: 12px; opacity: 0.7; flex: 1; text-align: center; }
     `;
 
     // ---- 縦中横 ----
@@ -115,91 +183,89 @@
     }
 
     // ---- ページ分割 ----
-    function splitIntoPages(paras, overlayEl) {
+    function splitIntoPages(paraGroups, overlayEl) {
       const probe = document.createElement('div');
       probe.className = 'tate-page';
-      probe.style.cssText = 'visibility:hidden;position:absolute;top:0;left:0;pointer-events:none;';
+      probe.style.cssText = 'visibility:hidden;position:absolute;top:0;left:0;pointer-events:none;flex-shrink:0;';
       overlayEl.appendChild(probe);
 
       const pages = [];
       let buf = [];
+      let currentNoteClass = '';
 
-      function flush(overflow) {
+      function flush(noteClass) {
         if (!buf.length) return;
         const pg = document.createElement('div');
-        pg.className = 'tate-page' + (overflow ? ' tate-page--overflow' : '');
+        pg.className = 'tate-page' + (noteClass ? ' tate-page--note' : '');
+        if (noteClass) pg.dataset.label = noteClass;
         for (const p of buf) pg.appendChild(p.cloneNode(true));
         pages.push(pg);
         buf = [];
       }
 
-      function overflows(parasArr) {
+      function overflows(arr) {
         probe.innerHTML = '';
-        for (const p of parasArr) probe.appendChild(p.cloneNode(true));
+        for (const p of arr) probe.appendChild(p.cloneNode(true));
         return probe.scrollWidth > probe.clientWidth;
       }
 
-      for (const srcPara of paras) {
-        const para = transformPara(srcPara);
-        probe.innerHTML = '';
-        probe.appendChild(para.cloneNode(true));
-
-        if (probe.scrollWidth > probe.clientWidth) {
-          // 段落単体でも溢れる
-          flush(false);
-          const isPlain = [...para.childNodes].every(
-            n => n.nodeType === Node.TEXT_NODE ||
-                 (n.nodeType === Node.ELEMENT_NODE && n.tagName === 'SPAN')
-          );
-          if (isPlain) {
-            const fullText = para.textContent;
-            let start = 0;
-            while (start < fullText.length) {
-              let lo = 1, hi = fullText.length - start;
-              while (lo < hi) {
-                const mid = Math.ceil((lo + hi) / 2);
-                const tp = document.createElement('p');
-                tp.textContent = fullText.slice(start, start + mid);
-                probe.innerHTML = ''; probe.appendChild(tp);
-                if (probe.scrollWidth > probe.clientWidth) hi = mid - 1; else lo = mid;
+      for (const { paras, noteClass } of paraGroups) {
+        if (noteClass !== currentNoteClass) { flush(currentNoteClass); currentNoteClass = noteClass; }
+        for (const srcPara of paras) {
+          const para = transformPara(srcPara);
+          probe.innerHTML = ''; probe.appendChild(para.cloneNode(true));
+          if (probe.scrollWidth > probe.clientWidth) {
+            flush(currentNoteClass);
+            const isPlain = [...para.childNodes].every(
+              n => n.nodeType === Node.TEXT_NODE ||
+                   (n.nodeType === Node.ELEMENT_NODE && n.tagName === 'SPAN')
+            );
+            if (isPlain) {
+              const fullText = para.textContent;
+              let start = 0;
+              while (start < fullText.length) {
+                let lo = 1, hi = fullText.length - start;
+                while (lo < hi) {
+                  const mid = Math.ceil((lo + hi) / 2);
+                  const tp = document.createElement('p');
+                  tp.textContent = fullText.slice(start, start + mid);
+                  probe.innerHTML = ''; probe.appendChild(tp);
+                  if (probe.scrollWidth > probe.clientWidth) hi = mid - 1; else lo = mid;
+                }
+                const cp = document.createElement('p');
+                cp.textContent = fullText.slice(start, start + lo);
+                buf = [cp]; flush(currentNoteClass); start += lo;
               }
-              const cp = document.createElement('p');
-              cp.textContent = fullText.slice(start, start + lo);
-              buf = [cp]; flush(false);
-              start += lo;
+            } else {
+              const pg = document.createElement('div');
+              pg.className = 'tate-page tate-page--overflow' + (noteClass ? ' tate-page--note' : '');
+              if (noteClass) pg.dataset.label = noteClass;
+              pg.appendChild(para.cloneNode(true));
+              pages.push(pg);
             }
-          } else {
-            const pg = document.createElement('div');
-            pg.className = 'tate-page tate-page--overflow';
-            pg.appendChild(para.cloneNode(true));
-            pages.push(pg);
+            continue;
           }
-          continue;
-        }
-
-        if (overflows([...buf, para])) {
-          flush(false);
-          buf = [para];
-        } else {
-          buf.push(para);
+          if (overflows([...buf, para])) { flush(currentNoteClass); buf = [para]; }
+          else buf.push(para);
         }
       }
-      flush(false);
+      flush(currentNoteClass);
       overlayEl.removeChild(probe);
       return pages;
     }
 
-    // ---- オーバーレイ構築 ----
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ---- デモ: activate ----
     let active = false;
+    let uiVisible = true;
 
     function activate() {
       if (active) return;
-      const bodyEl = document.querySelector('#novel_honbun');
-      if (!bodyEl) return;
-      const paras = [...bodyEl.querySelectorAll('p')].filter(p => p.textContent.trim());
-      if (!paras.length) return;
 
-      // CSS 注入
+      // CSS注入
       if (!document.getElementById('tate-overlay-css')) {
         const s = document.createElement('style');
         s.id = 'tate-overlay-css';
@@ -207,12 +273,41 @@
         document.head.appendChild(s);
       }
 
-      // 測定用の一時オーバーレイ
+      // 元サイト要素の取得（デモ用セレクタ）
+      const seriesTitle  = document.querySelector('.p-novel__series-title')?.textContent?.trim() ?? '';
+      const episodeTitle = document.querySelector('.p-novel__subtitle')?.textContent?.trim() ?? '';
+      const prevHref     = document.querySelector('.p-novel__foot--prev')?.href ?? '';
+      const nextHref     = document.querySelector('.p-novel__foot--next')?.href ?? '';
+
+      // 段落グループ構築
+      const paraGroups = [];
+
+      const beforeEl = document.querySelector('.p-novel__text--before');
+      if (beforeEl) {
+        const paras = [...beforeEl.querySelectorAll('p')].filter(p => p.textContent.trim());
+        if (paras.length) paraGroups.push({ paras, noteClass: '前書き' });
+      }
+
+      const bodyEl = document.querySelector('#novel_honbun');
+      if (bodyEl) {
+        const paras = [...bodyEl.querySelectorAll('p')].filter(p => p.textContent.trim());
+        if (paras.length) paraGroups.push({ paras, noteClass: '' });
+      }
+
+      const afterEl = document.querySelector('.p-novel__text--after');
+      if (afterEl) {
+        const paras = [...afterEl.querySelectorAll('p')].filter(p => p.textContent.trim());
+        if (paras.length) paraGroups.push({ paras, noteClass: '後書き' });
+      }
+
+      if (!paraGroups.length) return;
+
+      // 一時オーバーレイで測定
       const tmp = document.createElement('div');
       tmp.id = 'tate-overlay';
-      tmp.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;z-index:-1;';
+      tmp.style.cssText = `position:fixed;inset:0;visibility:hidden;pointer-events:none;z-index:-1;display:flex;flex-direction:row;padding-top:${HEADER_H}px;padding-bottom:${FOOTER_H}px;box-sizing:border-box;`;
       document.body.appendChild(tmp);
-      const pages = splitIntoPages(paras, tmp);
+      const pages = splitIntoPages(paraGroups, tmp);
       document.body.removeChild(tmp);
 
       // 本番オーバーレイ
@@ -221,53 +316,59 @@
       for (const pg of pages) overlay.appendChild(pg);
       document.body.appendChild(overlay);
 
-      // コントロールバー
-      const ctrl = document.createElement('div');
-      ctrl.id = 'tate-ctrl';
-      ctrl.classList.add('hidden');
-      ctrl.innerHTML = `
-        <button id="tate-btn-prev">◀ 戻る</button>
-        <span class="tate-page-indicator" id="tate-ind">1 / ${pages.length}</span>
-        <button id="tate-btn-close">閉じる</button>
+      // ヘッダー
+      const header = document.createElement('div');
+      header.id = 'tate-header';
+      header.innerHTML = `
+        <span id="tate-series-title">${escHtml(seriesTitle)}</span>
+        <span id="tate-episode-title">${escHtml(episodeTitle)}</span>
+        <button id="tate-btn-close" title="閉じる">✕</button>
       `;
-      document.body.appendChild(ctrl);
+      document.body.appendChild(header);
+
+      // フッター
+      const footer = document.createElement('div');
+      footer.id = 'tate-footer';
+      footer.innerHTML = `
+        <button id="tate-btn-prev" ${prevHref ? '' : 'disabled'}>← 前の話</button>
+        <span id="tate-page-indicator">1 / ${pages.length}</span>
+        <button id="tate-btn-next" ${nextHref ? '' : 'disabled'}>次の話 →</button>
+      `;
+      document.body.appendChild(footer);
 
       overlay.addEventListener('scroll', () => {
-        const pg = Math.round(overlay.scrollTop / window.innerHeight);
-        const ind = document.getElementById('tate-ind');
+        const pg = Math.round(overlay.scrollLeft / window.innerWidth);
+        const ind = document.getElementById('tate-page-indicator');
         if (ind) ind.textContent = `${pg + 1} / ${pages.length}`;
       }, { passive: true });
 
       overlay.addEventListener('click', e => {
         const x = e.clientX, w = window.innerWidth;
-        const c = document.getElementById('tate-ctrl');
+        const h = document.getElementById('tate-header');
+        const f = document.getElementById('tate-footer');
         if (x < w * 0.33) {
-          overlay.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
-          c?.classList.add('hidden');
+          overlay.scrollBy({ left: -w, behavior: 'smooth' });
         } else if (x > w * 0.67) {
-          overlay.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
-          c?.classList.add('hidden');
+          overlay.scrollBy({ left: w, behavior: 'smooth' });
         } else {
-          c?.classList.toggle('hidden');
+          uiVisible = !uiVisible;
+          h?.classList.toggle('hidden', !uiVisible);
+          f?.classList.toggle('hidden', !uiVisible);
         }
       });
 
-      document.getElementById('tate-btn-prev')?.addEventListener('click', e => {
-        e.stopPropagation();
-        overlay.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
-      });
-
       document.getElementById('tate-btn-close')?.addEventListener('click', e => {
-        e.stopPropagation();
-        deactivate();
+        e.stopPropagation(); deactivate();
       });
 
       active = true;
+      uiVisible = true;
     }
 
     function deactivate() {
       document.getElementById('tate-overlay')?.remove();
-      document.getElementById('tate-ctrl')?.remove();
+      document.getElementById('tate-header')?.remove();
+      document.getElementById('tate-footer')?.remove();
       active = false;
     }
 
