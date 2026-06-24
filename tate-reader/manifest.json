@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "なろう縦組みリーダー",
+  "version": "1.0.0",
+  "description": "なろう・カクヨムの本文を全画面縦書きオーバーレイで表示する",
+
+  "permissions": ["storage", "activeTab"],
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://ncode.syosetu.com/n*/*",
+        "https://novel18.syosetu.com/n*/*",
+        "https://kakuyomu.jp/works/*/episodes/*"
+      ],
+      "js": ["content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "縦書き"
+  }
+}

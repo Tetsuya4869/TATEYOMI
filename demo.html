@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>なろう縦組みリーダー デモ</title>
+  <style>
+    /* ページ本体（サイト本文のシミュレーション） */
+    body { font-family: sans-serif; padding: 1rem; background: #f0f0f0; color: #333; }
+    h1 { font-size: 1.1rem; }
+    .demo-controls { margin: 1rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .demo-controls button {
+      padding: 0.5rem 1rem; background: #333; color: #fff;
+      border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
+    }
+    #novel_honbun p { margin: 0 0 1em; line-height: 1.9; }
+  </style>
+</head>
+<body>
+  <h1>縦組みリーダー デモ</h1>
+  <div class="demo-controls">
+    <button id="btn-on">縦書きON</button>
+    <button id="btn-off">縦書きOFF</button>
+  </div>
+
+  <!-- なろう旧形式の本文セレクタをシミュレート -->
+  <div id="novel_honbun">
+    <p>　第1章は、ここから始まる。主人公の名は<ruby>霧島<rt>きりしま</rt></ruby>　<ruby>颯太<rt>そうた</rt></ruby>——享年<ruby>17<rt>じゅうなな</rt></ruby>歳、転生フラグを全力で回収した青年である。</p>
+    <p>　気づいたとき、彼は見知らぬ草原に立っていた。空は青く、風は優しく、遠くで小鳥がさえずっていた。典型的な異世界転生の幕開けだ。「また、このパターンか……」彼はため息をついた。</p>
+    <p>　ステータスウィンドウが目の前に浮かぶ。《レベル1　HP：100　MP：200　スキル：チートなし》——チートなし!? それは聞いていない。</p>
+    <p>　しかし颯太には、前世の記憶という最大の武器があった。2桁の計算など朝飯前だ。12×34＝408。地球では当たり前でも、魔法しか知らない世界では奇跡に等しい。</p>
+    <p>　「よし、まずは町を探そう。」彼は歩き出した。草を踏む音だけが静寂を破る。1歩、2歩、10歩——気づけば平原の果てまで来ていた。</p>
+    <p>　地平線の向こうに煙が見える。集落だろうか。颯太は走り出した。足が地を蹴るたびに、転生者としての新たな人生が幕を開けようとしていた。そして彼は知らなかった——あの煙の向こうに、運命の少女が待っているということを。</p>
+    <p>　少女の名は<ruby>リーナ<rt>Lina</rt></ruby>。金の髪、緑の瞳、腰には一振りの短剣。彼女はにこりともせず、颯太を一瞥した。「……チートなし転生者? 珍しい。」</p>
+    <p>　颯太は固まった。なぜ彼女は知っているのか。思わず声が漏れる。「え!?」「見りゃわかる。オーラが凡人だもの。」あまりにも直球な評価に、颯太は言葉を失った。</p>
+    <p>　しかしリーナはすぐに表情を変え、小さく笑んだ。「でも——凡人が一番、長く生き残るのよ。この世界では。」その言葉の意味を、颯太はまだ知らない。</p>
+    <p>　【第1章 完】次話「街の掟と最初の試練」へ続く……</p>
+  </div>
+
+  <script>
+    // overlay.css をインライン定義（demo.html では外部ファイル不要）
+    const OVERLAY_CSS = `
+      #tate-overlay {
+        position: fixed; inset: 0; z-index: 2147483647;
+        background: #faf8f3; color: #1a1a1a;
+        overflow-y: scroll; overflow-x: hidden;
+        scroll-snap-type: y mandatory;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        font-family: "Hiragino Mincho ProN", "Yu Mincho", "游明朝", serif;
+        font-size: 18px; line-height: 1.9;
+      }
+      .tate-page {
+        height: 100svh; width: 100vw;
+        scroll-snap-align: start; scroll-snap-stop: always;
+        writing-mode: vertical-rl;
+        overflow: hidden;
+        padding-top: max(env(safe-area-inset-top), 1rem);
+        padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+        padding-left: max(env(safe-area-inset-left), 1rem);
+        padding-right: max(env(safe-area-inset-right), 1rem);
+        box-sizing: border-box; position: relative;
+      }
+      .tate-page--overflow { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .tcy { text-combine-upright: all; -webkit-text-combine: horizontal; }
+      ruby { ruby-align: center; } rt { font-size: 0.5em; }
+      #tate-ctrl {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 2147483648;
+        background: rgba(0,0,0,0.75); color: #fff;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.6rem max(env(safe-area-inset-right),1rem) max(calc(env(safe-area-inset-bottom)+0.6rem),0.6rem) max(env(safe-area-inset-left),1rem);
+        font-family: -apple-system, sans-serif; font-size: 14px;
+        transition: transform 0.25s ease;
+      }
+      #tate-ctrl.hidden { transform: translateY(100%); }
+      #tate-ctrl button {
+        background: none; border: 1px solid rgba(255,255,255,0.4); color: #fff;
+        padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 14px;
+        cursor: pointer; -webkit-tap-highlight-color: transparent;
+      }
+      .tate-page-indicator { font-size: 13px; opacity: 0.8; }
+    `;
+
+    // ---- 縦中横 ----
+    function applyTCY(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (['RUBY','RT','RP'].includes(node.tagName)) return node.cloneNode(true);
+        const clone = node.cloneNode(false);
+        for (const child of node.childNodes) clone.appendChild(applyTCY(child));
+        return clone;
+      }
+      if (node.nodeType !== Node.TEXT_NODE) return node.cloneNode(true);
+      const text = node.textContent;
+      const pattern = /(\d{2}|[!?！？]{2})/g;
+      const frag = document.createDocumentFragment();
+      let last = 0, m;
+      while ((m = pattern.exec(text)) !== null) {
+        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        const span = document.createElement('span');
+        span.className = 'tcy';
+        span.textContent = m[0];
+        frag.appendChild(span);
+        last = m.index + m[0].length;
+      }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      const w = document.createElement('span');
+      w.appendChild(frag);
+      return w;
+    }
+
+    function transformPara(srcPara) {
+      const p = document.createElement('p');
+      for (const child of srcPara.childNodes) p.appendChild(applyTCY(child));
+      return p;
+    }
+
+    // ---- ページ分割 ----
+    function splitIntoPages(paras, overlayEl) {
+      const probe = document.createElement('div');
+      probe.className = 'tate-page';
+      probe.style.cssText = 'visibility:hidden;position:absolute;top:0;left:0;pointer-events:none;';
+      overlayEl.appendChild(probe);
+
+      const pages = [];
+      let buf = [];
+
+      function flush(overflow) {
+        if (!buf.length) return;
+        const pg = document.createElement('div');
+        pg.className = 'tate-page' + (overflow ? ' tate-page--overflow' : '');
+        for (const p of buf) pg.appendChild(p.cloneNode(true));
+        pages.push(pg);
+        buf = [];
+      }
+
+      function overflows(parasArr) {
+        probe.innerHTML = '';
+        for (const p of parasArr) probe.appendChild(p.cloneNode(true));
+        return probe.scrollWidth > probe.clientWidth;
+      }
+
+      for (const srcPara of paras) {
+        const para = transformPara(srcPara);
+        probe.innerHTML = '';
+        probe.appendChild(para.cloneNode(true));
+
+        if (probe.scrollWidth > probe.clientWidth) {
+          // 段落単体でも溢れる
+          flush(false);
+          const isPlain = [...para.childNodes].every(
+            n => n.nodeType === Node.TEXT_NODE ||
+                 (n.nodeType === Node.ELEMENT_NODE && n.tagName === 'SPAN')
+          );
+          if (isPlain) {
+            const fullText = para.textContent;
+            let start = 0;
+            while (start < fullText.length) {
+              let lo = 1, hi = fullText.length - start;
+              while (lo < hi) {
+                const mid = Math.ceil((lo + hi) / 2);
+                const tp = document.createElement('p');
+                tp.textContent = fullText.slice(start, start + mid);
+                probe.innerHTML = ''; probe.appendChild(tp);
+                if (probe.scrollWidth > probe.clientWidth) hi = mid - 1; else lo = mid;
+              }
+              const cp = document.createElement('p');
+              cp.textContent = fullText.slice(start, start + lo);
+              buf = [cp]; flush(false);
+              start += lo;
+            }
+          } else {
+            const pg = document.createElement('div');
+            pg.className = 'tate-page tate-page--overflow';
+            pg.appendChild(para.cloneNode(true));
+            pages.push(pg);
+          }
+          continue;
+        }
+
+        if (overflows([...buf, para])) {
+          flush(false);
+          buf = [para];
+        } else {
+          buf.push(para);
+        }
+      }
+      flush(false);
+      overlayEl.removeChild(probe);
+      return pages;
+    }
+
+    // ---- オーバーレイ構築 ----
+    let active = false;
+
+    function activate() {
+      if (active) return;
+      const bodyEl = document.querySelector('#novel_honbun');
+      if (!bodyEl) return;
+      const paras = [...bodyEl.querySelectorAll('p')].filter(p => p.textContent.trim());
+      if (!paras.length) return;
+
+      // CSS 注入
+      if (!document.getElementById('tate-overlay-css')) {
+        const s = document.createElement('style');
+        s.id = 'tate-overlay-css';
+        s.textContent = OVERLAY_CSS;
+        document.head.appendChild(s);
+      }
+
+      // 測定用の一時オーバーレイ
+      const tmp = document.createElement('div');
+      tmp.id = 'tate-overlay';
+      tmp.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;z-index:-1;';
+      document.body.appendChild(tmp);
+      const pages = splitIntoPages(paras, tmp);
+      document.body.removeChild(tmp);
+
+      // 本番オーバーレイ
+      const overlay = document.createElement('div');
+      overlay.id = 'tate-overlay';
+      for (const pg of pages) overlay.appendChild(pg);
+      document.body.appendChild(overlay);
+
+      // コントロールバー
+      const ctrl = document.createElement('div');
+      ctrl.id = 'tate-ctrl';
+      ctrl.classList.add('hidden');
+      ctrl.innerHTML = `
+        <button id="tate-btn-prev">◀ 戻る</button>
+        <span class="tate-page-indicator" id="tate-ind">1 / ${pages.length}</span>
+        <button id="tate-btn-close">閉じる</button>
+      `;
+      document.body.appendChild(ctrl);
+
+      overlay.addEventListener('scroll', () => {
+        const pg = Math.round(overlay.scrollTop / window.innerHeight);
+        const ind = document.getElementById('tate-ind');
+        if (ind) ind.textContent = `${pg + 1} / ${pages.length}`;
+      }, { passive: true });
+
+      overlay.addEventListener('click', e => {
+        const x = e.clientX, w = window.innerWidth;
+        const c = document.getElementById('tate-ctrl');
+        if (x < w * 0.33) {
+          overlay.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+          c?.classList.add('hidden');
+        } else if (x > w * 0.67) {
+          overlay.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+          c?.classList.add('hidden');
+        } else {
+          c?.classList.toggle('hidden');
+        }
+      });
+
+      document.getElementById('tate-btn-prev')?.addEventListener('click', e => {
+        e.stopPropagation();
+        overlay.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+      });
+
+      document.getElementById('tate-btn-close')?.addEventListener('click', e => {
+        e.stopPropagation();
+        deactivate();
+      });
+
+      active = true;
+    }
+
+    function deactivate() {
+      document.getElementById('tate-overlay')?.remove();
+      document.getElementById('tate-ctrl')?.remove();
+      active = false;
+    }
+
+    document.getElementById('btn-on').addEventListener('click', activate);
+    document.getElementById('btn-off').addEventListener('click', deactivate);
+  </script>
+</body>
+</html>

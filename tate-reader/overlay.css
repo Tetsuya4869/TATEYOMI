@@ -1,0 +1,98 @@
+/* ==== なろう縦組みリーダー overlay.css ==== */
+
+#tate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: #faf8f3;
+  color: #1a1a1a;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "游明朝", serif;
+  font-size: 18px;
+  line-height: 1.9;
+}
+
+.tate-page {
+  height: 100svh;
+  width: 100vw;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  writing-mode: vertical-rl;
+  overflow: hidden;
+  padding-top: max(env(safe-area-inset-top), 1rem);
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  padding-left: max(env(safe-area-inset-left), 1rem);
+  padding-right: max(env(safe-area-inset-right), 1rem);
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 1段落が長くてはみ出す場合のフォールバック */
+.tate-page--overflow {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 縦中横: 2桁数字・!?など */
+.tcy {
+  text-combine-upright: all;
+  -webkit-text-combine: horizontal;
+}
+
+/* ルビ */
+ruby {
+  ruby-align: center;
+}
+rt {
+  font-size: 0.5em;
+}
+
+/* コントロールバー */
+#tate-ctrl {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2147483648;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem max(env(safe-area-inset-right), 1rem) max(calc(env(safe-area-inset-bottom) + 0.6rem), 0.6rem) max(env(safe-area-inset-left), 1rem);
+  font-family: -apple-system, sans-serif;
+  font-size: 14px;
+  transition: transform 0.25s ease;
+}
+
+#tate-ctrl.hidden {
+  transform: translateY(100%);
+}
+
+#tate-ctrl button {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#tate-ctrl .tate-page-indicator {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* 章タイトル */
+.tate-chapter-title {
+  font-size: 0.85em;
+  opacity: 0.5;
+  margin-bottom: 1.5em;
+  writing-mode: vertical-rl;
+}
