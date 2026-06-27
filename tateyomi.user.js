@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         なろう縦組みリーダー
 // @namespace    https://github.com/tetsuya4869/tateyomi
-// @version      1.2.0
+// @version      1.3.0
 // @description  なろう・カクヨムの本文を全画面縦書きで表示する
 // @author       tetsuya4869
 // @match        https://ncode.syosetu.com/n*/*
@@ -23,7 +23,7 @@
     }
 
     #tate-overlay {
-      position: fixed; inset: 0; z-index: 2147483647;
+      position: fixed; inset: 0; z-index: 2147483645;
       background: #faf8f3; color: #1a1a1a;
       padding-top: var(--tate-header-h);
       padding-bottom: var(--tate-footer-h);
@@ -43,12 +43,12 @@
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "游明朝", serif;
       font-size: 18px;
       line-height: 1.9;
+      letter-spacing: 0.05em;
     }
 
-    /* 前書き・後書き区切りラベル */
     .tate-section-label {
       font-size: 0.7em;
-      opacity: 0.45;
+      opacity: 0.4;
       margin: 0 1em;
       letter-spacing: 0.2em;
     }
@@ -62,12 +62,15 @@
       position: fixed; top: 0; left: 0; right: 0;
       height: var(--tate-header-h);
       padding-top: env(safe-area-inset-top, 0);
-      z-index: 2147483648;
-      background: rgba(30, 25, 20, 0.88); color: #e8e0d5;
+      z-index: 2147483647;
+      background: rgba(20, 16, 12, 0.70);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      color: #e8e0d5;
       display: flex; align-items: center;
       font-family: -apple-system, sans-serif;
       box-sizing: border-box;
-      transition: transform 0.25s ease;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     #tate-header.hidden { transform: translateY(-100%); }
 
@@ -92,36 +95,53 @@
       position: fixed; bottom: 0; left: 0; right: 0;
       height: calc(var(--tate-footer-h) + env(safe-area-inset-bottom, 0px));
       padding-bottom: env(safe-area-inset-bottom, 0);
-      z-index: 2147483648;
-      background: rgba(30, 25, 20, 0.88); color: #e8e0d5;
+      z-index: 2147483647;
+      background: rgba(20, 16, 12, 0.70);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      color: #e8e0d5;
       display: flex; align-items: center; justify-content: space-between;
       font-family: -apple-system, sans-serif;
       box-sizing: border-box;
-      transition: transform 0.25s ease;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     #tate-footer.hidden { transform: translateY(100%); }
 
     #tate-footer button {
-      background: none; border: 1px solid rgba(255,255,255,0.3); color: #e8e0d5;
+      background: none; border: 1px solid rgba(255,255,255,0.22); color: #e8e0d5;
       padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 12px;
       cursor: pointer; margin: 0 0.35rem;
       -webkit-tap-highlight-color: transparent; white-space: nowrap;
+      transition: background 0.15s;
     }
+    #tate-footer button:active { background: rgba(255,255,255,0.15); }
     #tate-footer button:disabled { opacity: 0.3; pointer-events: none; }
-    #tate-progress { font-size: 12px; opacity: 0.65; }
+    #tate-progress { font-size: 11px; opacity: 0.6; min-width: 3em; text-align: center; }
+
+    /* 読書進捗バー（フッターとは独立、常時表示） */
+    #tate-progress-bar {
+      position: fixed; bottom: 0; left: 0;
+      height: 3px; width: 0%;
+      background: linear-gradient(to right, #c8a96e, #e8c880);
+      z-index: 2147483646;
+      transition: width 0.15s ease;
+      pointer-events: none;
+    }
 
     /* FAB */
     #tate-fab {
       position: fixed;
       bottom: max(env(safe-area-inset-bottom), 1rem); right: 1rem;
-      z-index: 2147483646;
-      background: rgba(30,25,20,0.88); color: #e8e0d5;
-      border: none; border-radius: 50%; width: 48px; height: 48px;
+      z-index: 2147483644;
+      background: rgba(20, 16, 12, 0.85); color: #e8e0d5;
+      border: none; border-radius: 50%; width: 52px; height: 52px;
       font-size: 16px; font-family: "Hiragino Mincho ProN", serif;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s, box-shadow 0.15s;
     }
+    #tate-fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
   `);
 
   // ---- サイトアダプタ ----
@@ -235,11 +255,10 @@
     return p;
   }
 
-  // ---- 読書エリア構築（ページ分割なし・自由スクロール） ----
+  // ---- 読書エリア構築 ----
   function buildReadingArea(paraGroups) {
     const area = document.createElement('div');
     area.id = 'tate-reading-area';
-
     for (const { paras, noteClass } of paraGroups) {
       if (noteClass) {
         const label = document.createElement('p');
@@ -285,11 +304,32 @@
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // ---- 有効化 ----
+  // ---- UI 表示制御 ----
   let active = false;
-  let uiVisible = true;
+  let uiVisible = false;
+  let uiHideTimer = null;
   let resizeTimer = null;
 
+  function showUI() {
+    const h = document.getElementById('tate-header');
+    const f = document.getElementById('tate-footer');
+    h?.classList.remove('hidden');
+    f?.classList.remove('hidden');
+    uiVisible = true;
+    clearTimeout(uiHideTimer);
+    uiHideTimer = setTimeout(hideUI, 4000);
+  }
+
+  function hideUI() {
+    const h = document.getElementById('tate-header');
+    const f = document.getElementById('tate-footer');
+    h?.classList.add('hidden');
+    f?.classList.add('hidden');
+    uiVisible = false;
+    clearTimeout(uiHideTimer);
+  }
+
+  // ---- 有効化 ----
   function activate() {
     if (active) return;
     const adapter = ADAPTERS.find(a => a.test(location.hostname));
@@ -302,14 +342,12 @@
     }
     if (!bodyEl) return;
 
-    // 元サイトの各要素を取得
     const episodeTitle = first(adapter.titleSel)?.textContent?.trim() ?? '';
     const seriesTitle  = first(adapter.seriesSel)?.textContent?.trim() ?? '';
     const prevHref     = findNavLink(adapter.prevSel, adapter.prevPat)?.href ?? '';
     const nextHref     = findNavLink(adapter.nextSel, adapter.nextPat)?.href ?? '';
     const tocHref      = adapter.tocUrl ? adapter.tocUrl() : '';
 
-    // 前書き・本文・後書きの段落グループ
     const paraGroups = [];
 
     if (adapter.beforeSel.length) {
@@ -339,15 +377,12 @@
 
     enableViewportCover();
 
-    // オーバーレイ
     const overlay = document.createElement('div');
     overlay.id = 'tate-overlay';
-
     const readingArea = buildReadingArea(paraGroups);
     overlay.appendChild(readingArea);
     document.body.appendChild(overlay);
 
-    // ヘッダー
     const header = document.createElement('div');
     header.id = 'tate-header';
     header.innerHTML = `
@@ -357,45 +392,39 @@
     `;
     document.body.appendChild(header);
 
-    // フッター
     const footer = document.createElement('div');
     footer.id = 'tate-footer';
     footer.innerHTML = `
-      <button id="tate-btn-prev" ${prevHref ? '' : 'disabled'}>← 前の話</button>
+      <button id="tate-btn-prev" ${prevHref ? '' : 'disabled'}>‹ 前の話</button>
       <button id="tate-btn-toc"  ${tocHref  ? '' : 'disabled'}>目次</button>
       <span id="tate-progress">0%</span>
-      <button id="tate-btn-next" ${nextHref ? '' : 'disabled'}>次の話 →</button>
+      <button id="tate-btn-next" ${nextHref ? '' : 'disabled'}>次の話 ›</button>
     `;
     document.body.appendChild(footer);
 
+    const progressBar = document.createElement('div');
+    progressBar.id = 'tate-progress-bar';
+    document.body.appendChild(progressBar);
+
     document.getElementById('tate-fab')?.remove();
 
-    // 読書進捗（スクロール率）
     const progressEl = document.getElementById('tate-progress');
     readingArea.addEventListener('scroll', () => {
       const max = readingArea.scrollWidth - readingArea.clientWidth;
       if (max <= 0) return;
       const pct = Math.round(readingArea.scrollLeft / max * 100);
       if (progressEl) progressEl.textContent = `${pct}%`;
+      progressBar.style.width = `${pct}%`;
+      clearTimeout(uiHideTimer);
+      if (uiVisible) uiHideTimer = setTimeout(hideUI, 4000);
     }, { passive: true });
 
-    // タップゾーン（左1/3 = 前へ、右1/3 = 次へ、中央 = UIトグル）
-    readingArea.addEventListener('click', e => {
-      const x = e.clientX, w = window.innerWidth;
-      const h = document.getElementById('tate-header');
-      const f = document.getElementById('tate-footer');
-      if (x < w * 0.33) {
-        readingArea.scrollBy({ left: -w * 0.8, behavior: 'smooth' });
-      } else if (x > w * 0.67) {
-        readingArea.scrollBy({ left:  w * 0.8, behavior: 'smooth' });
-      } else {
-        uiVisible = !uiVisible;
-        h?.classList.toggle('hidden', !uiVisible);
-        f?.classList.toggle('hidden', !uiVisible);
-      }
+    // タップで UI 表示切り替え（スクロールは自然なスワイプに任せる）
+    readingArea.addEventListener('click', () => {
+      if (uiVisible) hideUI();
+      else showUI();
     });
 
-    // ボタン
     document.getElementById('tate-btn-close')?.addEventListener('click', e => {
       e.stopPropagation(); deactivate();
     });
@@ -412,14 +441,18 @@
     window.addEventListener('orientationchange', handleOrientationChange);
     window.addEventListener('resize', handleResize);
     active = true;
-    uiVisible = true;
+
+    // 起動時にUIを表示し、4秒後に自動で隠す
+    showUI();
   }
 
   function deactivate() {
     if (!active) return;
+    clearTimeout(uiHideTimer);
     document.getElementById('tate-overlay')?.remove();
     document.getElementById('tate-header')?.remove();
     document.getElementById('tate-footer')?.remove();
+    document.getElementById('tate-progress-bar')?.remove();
     restoreViewport();
     window.removeEventListener('orientationchange', handleOrientationChange);
     window.removeEventListener('resize', handleResize);

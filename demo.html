@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>なろう縦組みリーダー デモ v1.2</title>
+  <title>なろう縦組みリーダー デモ v1.3</title>
   <style>
     body { font-family: sans-serif; padding: 1rem; background: #e8e4dc; color: #333; }
     h1 { font-size: 1rem; margin: 0 0 0.5rem; }
@@ -27,9 +27,9 @@
   </style>
 </head>
 <body>
-  <h1>縦組みリーダー デモ（v1.2 フリースクロール・目次対応）</h1>
+  <h1>縦組みリーダー デモ（v1.3 グラスモーフィズム・自動UI非表示）</h1>
   <p style="font-size:0.8rem;color:#666;margin:0 0 0.5rem;">
-    左1/3タップ=前へ / 右1/3タップ=次へ / 中央タップ=UI表示切替
+    タップでUI表示切替 / スワイプで横スクロール / 4秒後に自動非表示
   </p>
   <div class="demo-controls">
     <button id="btn-on">縦書きON</button>
@@ -70,13 +70,11 @@
   </div>
 
   <script>
-    const HEADER_H = 44;
-    const FOOTER_H = 48;
-
     const CSS = `
-      :root { --tate-header-h: ${HEADER_H}px; --tate-footer-h: ${FOOTER_H}px; }
+      :root { --tate-header-h: 44px; --tate-footer-h: 48px; }
+
       #tate-overlay {
-        position: fixed; inset: 0; z-index: 2147483647;
+        position: fixed; inset: 0; z-index: 2147483645;
         background: #faf8f3; color: #1a1a1a;
         padding-top: var(--tate-header-h); padding-bottom: var(--tate-footer-h);
         box-sizing: border-box;
@@ -91,10 +89,10 @@
                  0.75rem max(env(safe-area-inset-left),1rem);
         box-sizing: border-box;
         font-family: "Hiragino Mincho ProN","Yu Mincho","游明朝",serif;
-        font-size: 18px; line-height: 1.9;
+        font-size: 18px; line-height: 1.9; letter-spacing: 0.05em;
       }
       .tate-section-label {
-        font-size: 0.7em; opacity: 0.45; margin: 0 1em; letter-spacing: 0.2em;
+        font-size: 0.7em; opacity: 0.4; margin: 0 1em; letter-spacing: 0.2em;
       }
       .tcy { text-combine-upright: all; -webkit-text-combine: horizontal; }
       ruby { ruby-align: center; } rt { font-size: 0.5em; }
@@ -102,11 +100,14 @@
       #tate-header {
         position: fixed; top: 0; left: 0; right: 0;
         height: var(--tate-header-h); padding-top: env(safe-area-inset-top,0);
-        z-index: 2147483648;
-        background: rgba(30,25,20,0.88); color: #e8e0d5;
+        z-index: 2147483647;
+        background: rgba(20,16,12,0.70);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        color: #e8e0d5;
         display: flex; align-items: center;
         font-family: -apple-system,sans-serif; box-sizing: border-box;
-        transition: transform 0.25s ease;
+        transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
       }
       #tate-header.hidden { transform: translateY(-100%); }
       #tate-series-title {
@@ -129,21 +130,35 @@
         position: fixed; bottom: 0; left: 0; right: 0;
         height: calc(var(--tate-footer-h) + env(safe-area-inset-bottom,0px));
         padding-bottom: env(safe-area-inset-bottom,0);
-        z-index: 2147483648;
-        background: rgba(30,25,20,0.88); color: #e8e0d5;
+        z-index: 2147483647;
+        background: rgba(20,16,12,0.70);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        color: #e8e0d5;
         display: flex; align-items: center; justify-content: space-between;
         font-family: -apple-system,sans-serif; box-sizing: border-box;
-        transition: transform 0.25s ease;
+        transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
       }
       #tate-footer.hidden { transform: translateY(100%); }
       #tate-footer button {
-        background: none; border: 1px solid rgba(255,255,255,0.3); color: #e8e0d5;
+        background: none; border: 1px solid rgba(255,255,255,0.22); color: #e8e0d5;
         padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 12px;
         cursor: pointer; margin: 0 0.35rem;
         -webkit-tap-highlight-color: transparent; white-space: nowrap;
+        transition: background 0.15s;
       }
+      #tate-footer button:active { background: rgba(255,255,255,0.15); }
       #tate-footer button:disabled { opacity: 0.3; pointer-events: none; }
-      #tate-progress { font-size: 12px; opacity: 0.65; }
+      #tate-progress { font-size: 11px; opacity: 0.6; min-width: 3em; text-align: center; }
+
+      #tate-progress-bar {
+        position: fixed; bottom: 0; left: 0;
+        height: 3px; width: 0%;
+        background: linear-gradient(to right, #c8a96e, #e8c880);
+        z-index: 2147483646;
+        transition: width 0.15s ease;
+        pointer-events: none;
+      }
     `;
 
     function applyTCY(node) {
@@ -197,7 +212,22 @@
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    let active = false, uiVisible = true;
+    let active = false, uiVisible = false, uiHideTimer = null;
+
+    function showUI() {
+      document.getElementById('tate-header')?.classList.remove('hidden');
+      document.getElementById('tate-footer')?.classList.remove('hidden');
+      uiVisible = true;
+      clearTimeout(uiHideTimer);
+      uiHideTimer = setTimeout(hideUI, 4000);
+    }
+
+    function hideUI() {
+      document.getElementById('tate-header')?.classList.add('hidden');
+      document.getElementById('tate-footer')?.classList.add('hidden');
+      uiVisible = false;
+      clearTimeout(uiHideTimer);
+    }
 
     function activate() {
       if (active) return;
@@ -212,7 +242,6 @@
       const episodeTitle = document.querySelector('.p-novel__subtitle')?.textContent?.trim() ?? '';
       const prevHref     = document.querySelector('.p-novel__foot--prev')?.href ?? '';
       const nextHref     = document.querySelector('.p-novel__foot--next')?.href ?? '';
-      // デモでは目次リンクをシリーズタイトルのリンクから取得（実際は tocUrl() で生成）
       const tocHref      = document.querySelector('.p-novel__series-title a')?.href ?? '';
 
       const paraGroups = [];
@@ -255,12 +284,16 @@
       const footer = document.createElement('div');
       footer.id = 'tate-footer';
       footer.innerHTML = `
-        <button id="tate-btn-prev" ${prevHref ? '' : 'disabled'}>← 前の話</button>
+        <button id="tate-btn-prev" ${prevHref ? '' : 'disabled'}>‹ 前の話</button>
         <button id="tate-btn-toc"  ${tocHref  ? '' : 'disabled'}>目次</button>
         <span id="tate-progress">0%</span>
-        <button id="tate-btn-next" ${nextHref ? '' : 'disabled'}>次の話 →</button>
+        <button id="tate-btn-next" ${nextHref ? '' : 'disabled'}>次の話 ›</button>
       `;
       document.body.appendChild(footer);
+
+      const progressBar = document.createElement('div');
+      progressBar.id = 'tate-progress-bar';
+      document.body.appendChild(progressBar);
 
       const progressEl = document.getElementById('tate-progress');
       readingArea.addEventListener('scroll', () => {
@@ -268,21 +301,14 @@
         if (max <= 0) return;
         const pct = Math.round(readingArea.scrollLeft / max * 100);
         if (progressEl) progressEl.textContent = `${pct}%`;
+        progressBar.style.width = `${pct}%`;
+        clearTimeout(uiHideTimer);
+        if (uiVisible) uiHideTimer = setTimeout(hideUI, 4000);
       }, { passive: true });
 
-      readingArea.addEventListener('click', e => {
-        const x = e.clientX, w = window.innerWidth;
-        const h = document.getElementById('tate-header');
-        const f = document.getElementById('tate-footer');
-        if (x < w * 0.33) {
-          readingArea.scrollBy({ left: -w * 0.8, behavior: 'smooth' });
-        } else if (x > w * 0.67) {
-          readingArea.scrollBy({ left: w * 0.8, behavior: 'smooth' });
-        } else {
-          uiVisible = !uiVisible;
-          h?.classList.toggle('hidden', !uiVisible);
-          f?.classList.toggle('hidden', !uiVisible);
-        }
+      readingArea.addEventListener('click', () => {
+        if (uiVisible) hideUI();
+        else showUI();
       });
 
       document.getElementById('tate-btn-close')?.addEventListener('click', e => { e.stopPropagation(); deactivate(); });
@@ -290,13 +316,16 @@
       document.getElementById('tate-btn-next')?.addEventListener('click', e => { e.stopPropagation(); if (nextHref) alert('次の話へ: ' + nextHref); });
       document.getElementById('tate-btn-toc')?.addEventListener('click', e => { e.stopPropagation(); if (tocHref) alert('目次へ: ' + tocHref); });
 
-      active = true; uiVisible = true;
+      active = true;
+      showUI();
     }
 
     function deactivate() {
+      clearTimeout(uiHideTimer);
       document.getElementById('tate-overlay')?.remove();
       document.getElementById('tate-header')?.remove();
       document.getElementById('tate-footer')?.remove();
+      document.getElementById('tate-progress-bar')?.remove();
       active = false;
     }
 
