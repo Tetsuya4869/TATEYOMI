@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>なろう縦組みリーダー デモ v1.3</title>
+  <title>なろう縦組みリーダー デモ v1.4</title>
   <style>
     body { font-family: sans-serif; padding: 1rem; background: #e8e4dc; color: #333; }
-    h1 { font-size: 1rem; margin: 0 0 0.5rem; }
+    h1.page-title { font-size: 1rem; margin: 0 0 0.5rem; }
     .demo-controls { margin: 0.75rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .demo-controls button {
       padding: 0.5rem 1rem; background: #2a2520; color: #e8e0d5;
@@ -14,35 +14,35 @@
     }
     .p-novel__series-title { font-size: 0.8rem; color: #888; margin-bottom: 0.25rem; }
     .p-novel__subtitle { font-size: 1.1rem; font-weight: bold; margin-bottom: 1rem; }
-    .p-novel__text--before,
-    .p-novel__text--after {
+    .p-novel__text--preface,
+    .p-novel__text--afterword {
       background: #f0ece4; padding: 0.75rem; margin: 0.5rem 0;
       border-left: 3px solid #aaa; font-size: 0.9em;
     }
-    .p-novel__text--before p,
-    .p-novel__text--after p { margin: 0 0 0.5em; }
+    .p-novel__text--preface p,
+    .p-novel__text--afterword p { margin: 0 0 0.5em; }
     #novel_honbun p { margin: 0 0 1em; line-height: 1.9; }
     .novel-nav { margin-top: 1rem; display: flex; gap: 1rem; }
     .novel-nav a { color: #555; }
   </style>
 </head>
 <body>
-  <h1>縦組みリーダー デモ（v1.3 グラスモーフィズム・自動UI非表示）</h1>
+  <h1 class="page-title">縦組みリーダー デモ（v1.4 インプレース縦書き）</h1>
   <p style="font-size:0.8rem;color:#666;margin:0 0 0.5rem;">
-    タップでUI表示切替 / スワイプで横スクロール / 4秒後に自動非表示
+    縦書きONで本文に直接writing-modeを適用。固定ボタンで画面固定。
   </p>
   <div class="demo-controls">
     <button id="btn-on">縦書きON</button>
     <button id="btn-off">縦書きOFF</button>
   </div>
 
-  <!-- なろう新UIのDOM構造をシミュレート -->
+  <!-- なろうDOM構造をシミュレート -->
   <p class="p-novel__series-title">
     <a href="#toc">転生したらチートなしだった件</a>
   </p>
   <h1 class="p-novel__subtitle">第1話　異世界の草原で目が覚めたら</h1>
 
-  <div class="p-novel__text--before">
+  <div class="p-novel__text--preface">
     <p>※この話はフィクションです。実在の人物・団体とは一切関係ありません。</p>
     <p>今回は主人公の転生直後を描いています。ゆっくりお楽しみください。</p>
   </div>
@@ -59,121 +59,169 @@
     <p>　しかしリーナはすぐに表情を変え、小さく笑んだ。「でも——凡人が一番、長く生き残るのよ。この世界では。」その言葉の意味を、颯太はまだ知らない。</p>
   </div>
 
-  <div class="p-novel__text--after">
+  <div class="p-novel__text--afterword">
     <p>ここまで読んでいただきありがとうございました！</p>
     <p>次回は颯太がリーナとともに街へ向かう場面を描きます。お楽しみに。</p>
   </div>
 
-  <div class="novel-nav p-novel__foot">
-    <a href="#prev" class="p-novel__foot--prev">← 第0話（プロローグ）</a>
-    <a href="#next" class="p-novel__foot--next">第2話 →</a>
+  <div class="novel-nav">
+    <a href="#prev" class="p-novel__foot--prev">‹ 前の話</a>
+    <a href="#next" class="p-novel__foot--next">次の話 ›</a>
   </div>
 
   <script>
-    const CSS = `
-      :root { --tate-header-h: 44px; --tate-footer-h: 48px; }
+    // ===== 設定 =====
+    const APPLY_TCY = true;
+    const DEFAULT_FONT_SIZE = 1.05;
+    const DEFAULT_LINE_HEIGHT = 1.9;
+    const DEFAULT_LOCKED = false; // デモでは非固定をデフォルトに
+    const TOP_RATIO = '14%';
+    const BOTTOM_RATIO = '5%';
+    const PANE_HEIGHT = '82svh';
+    const NEXT_KEYWORDS = ['次へ', '次の話', '‹ 前の話', '前の話'];
+    const PREV_KEYWORDS = ['前へ', '前の話'];
 
-      #tate-overlay {
-        position: fixed; inset: 0; z-index: 2147483645;
-        background: #faf8f3; color: #1a1a1a;
-        padding-top: var(--tate-header-h); padding-bottom: var(--tate-footer-h);
-        box-sizing: border-box;
-      }
-      #tate-reading-area {
-        width: 100%; height: 100%;
-        writing-mode: vertical-rl;
-        overflow-x: scroll; overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-x: contain;
-        padding: 0.75rem max(env(safe-area-inset-right),1rem)
-                 0.75rem max(env(safe-area-inset-left),1rem);
-        box-sizing: border-box;
-        font-family: "Hiragino Mincho ProN","Yu Mincho","游明朝",serif;
-        font-size: 18px; line-height: 1.9; letter-spacing: 0.05em;
-      }
-      .tate-section-label {
-        font-size: 0.7em; opacity: 0.4; margin: 0 1em; letter-spacing: 0.2em;
-      }
-      .tcy { text-combine-upright: all; -webkit-text-combine: horizontal; }
-      ruby { ruby-align: center; } rt { font-size: 0.5em; }
+    const VERTICAL_CLASS = 'tg-vertical';
+    const ROOT_ON_CLASS = 'tg-on';
+    const ROOT_LOCK_CLASS = 'tg-locked';
+    const PANEL_SIDE = 'left';
+    const NAV_SIDE = 'right';
 
-      #tate-header {
-        position: fixed; top: 0; left: 0; right: 0;
-        height: var(--tate-header-h); padding-top: env(safe-area-inset-top,0);
-        z-index: 2147483647;
-        background: rgba(20,16,12,0.70);
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        color: #e8e0d5;
-        display: flex; align-items: center;
-        font-family: -apple-system,sans-serif; box-sizing: border-box;
-        transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-      }
-      #tate-header.hidden { transform: translateY(-100%); }
-      #tate-series-title {
-        font-size: 10px; opacity: 0.55; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis;
-        padding: 0 0.5rem; min-width: 0; flex: 0 1 auto;
-      }
-      #tate-episode-title {
-        font-size: 12px; font-weight: 600; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis;
-        flex: 1 1 0; text-align: center; padding: 0 0.25rem;
-      }
-      #tate-btn-close {
-        flex: 0 0 auto; background: none; border: none; color: #e8e0d5;
-        font-size: 18px; padding: 0 0.75rem; cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-      }
+    // ===== スタイル =====
+    const injectStyle = () => {
+      if (document.getElementById('tg-style')) return;
+      const style = document.createElement('style');
+      style.id = 'tg-style';
+      style.textContent = `
+        :root {
+          --tg-font-size: ${DEFAULT_FONT_SIZE}rem;
+          --tg-line-height: ${DEFAULT_LINE_HEIGHT};
+          --tg-height: ${PANE_HEIGHT};
+          --tg-top: ${TOP_RATIO};
+          --tg-bottom: ${BOTTOM_RATIO};
+          --tg-bg: #faf8f3;
+        }
+        .${VERTICAL_CLASS} {
+          writing-mode: vertical-rl;
+          -webkit-writing-mode: vertical-rl;
+          text-orientation: mixed;
+          overflow-x: auto;
+          overflow-y: hidden;
+          overscroll-behavior-x: contain;
+          -webkit-overflow-scrolling: touch;
+          box-sizing: border-box;
+          font-size: var(--tg-font-size);
+          line-height: var(--tg-line-height);
+          letter-spacing: 0.05em;
+          font-family: "Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif;
+        }
+        .${VERTICAL_CLASS} p { margin: 0; }
+        .${VERTICAL_CLASS}::-webkit-scrollbar { height: 6px; }
+        .${VERTICAL_CLASS}::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,.22); border-radius: 3px;
+        }
+        .tcy { text-combine-upright: all; -webkit-text-combine: horizontal; }
+        ruby { ruby-align: center; }
+        rt { font-size: 0.5em; }
 
-      #tate-footer {
-        position: fixed; bottom: 0; left: 0; right: 0;
-        height: calc(var(--tate-footer-h) + env(safe-area-inset-bottom,0px));
-        padding-bottom: env(safe-area-inset-bottom,0);
-        z-index: 2147483647;
-        background: rgba(20,16,12,0.70);
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        color: #e8e0d5;
-        display: flex; align-items: center; justify-content: space-between;
-        font-family: -apple-system,sans-serif; box-sizing: border-box;
-        transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-      }
-      #tate-footer.hidden { transform: translateY(100%); }
-      #tate-footer button {
-        background: none; border: 1px solid rgba(255,255,255,0.22); color: #e8e0d5;
-        padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 12px;
-        cursor: pointer; margin: 0 0.35rem;
-        -webkit-tap-highlight-color: transparent; white-space: nowrap;
-        transition: background 0.15s;
-      }
-      #tate-footer button:active { background: rgba(255,255,255,0.15); }
-      #tate-footer button:disabled { opacity: 0.3; pointer-events: none; }
-      #tate-progress { font-size: 11px; opacity: 0.6; min-width: 3em; text-align: center; }
+        html:not(.${ROOT_LOCK_CLASS}) .${VERTICAL_CLASS} {
+          height: var(--tg-height);
+          max-height: var(--tg-height);
+          width: 100%;
+          padding: 0.75rem 0.75rem;
+        }
+        html.${ROOT_LOCK_CLASS} .${VERTICAL_CLASS} {
+          position: fixed;
+          top: var(--tg-top);
+          bottom: calc(var(--tg-bottom) + 3px);
+          left: 0; right: 0;
+          width: auto; height: auto;
+          max-width: none; max-height: none;
+          margin: 0;
+          padding: 0.75rem 1rem;
+          background: var(--tg-bg);
+          z-index: 9998;
+        }
+        #tg-progress-bar {
+          position: fixed; bottom: 0; left: 0;
+          height: 3px; width: 0%;
+          background: linear-gradient(to right, #c8a96e, #e8c880);
+          z-index: 99999;
+          transition: width 0.15s ease;
+          pointer-events: none;
+        }
+        #tg-panel {
+          position: fixed;
+          z-index: 99999;
+          display: flex; flex-wrap: wrap; gap: 4px;
+          padding: 6px; border-radius: 10px;
+          background: rgba(20,16,12,0.80);
+          backdrop-filter: blur(16px) saturate(180%);
+          -webkit-backdrop-filter: blur(16px) saturate(180%);
+        }
+        #tg-panel.tg-pos-left { left: 8px; bottom: 8px; }
+        #tg-panel.tg-pos-right { right: 8px; bottom: 8px; }
+        #tg-panel button {
+          min-width: 42px; height: 38px;
+          border: none; border-radius: 6px;
+          background: rgba(255,255,255,0.12);
+          color: #e8e0d5; font-size: 13px; line-height: 1;
+          cursor: pointer; -webkit-tap-highlight-color: transparent;
+          transition: background 0.12s;
+        }
+        #tg-panel button:active { background: rgba(255,255,255,0.25); }
+        #tg-panel button:disabled { opacity: 0.35; pointer-events: none; }
+        #tg-nav {
+          position: fixed; z-index: 99999;
+          display: flex; flex-direction: column; align-items: center; gap: 10px;
+          right: 2%; bottom: 15%;
+        }
+        #tg-nav a, #tg-nav span {
+          display: inline-flex; align-items: center; justify-content: center;
+          text-decoration: none; border-radius: 999px;
+          font-family: -apple-system, sans-serif;
+          -webkit-tap-highlight-color: transparent;
+          transition: filter .12s, transform .12s;
+        }
+        #tg-nav a:active { filter: brightness(.88); transform: translateY(1px); }
+        #tg-nav .tg-prev {
+          height: 44px; padding: 0 16px; font-size: 13px; font-weight: 600;
+          color: #c8a96e;
+          background: rgba(20,16,12,0.80);
+          backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(200,169,110,0.4);
+          box-shadow: 0 2px 8px rgba(0,0,0,.28);
+        }
+        #tg-nav .tg-next {
+          height: 52px; padding: 0 22px; font-size: 16px; font-weight: 700;
+          color: #e8e0d5;
+          background: rgba(20,16,12,0.90);
+          backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255,255,255,0.15);
+          box-shadow: 0 4px 16px rgba(0,0,0,.38);
+        }
+        #tg-nav .tg-disabled { opacity: .4; pointer-events: none; }
+      `;
+      document.head.appendChild(style);
+    };
 
-      #tate-progress-bar {
-        position: fixed; bottom: 0; left: 0;
-        height: 3px; width: 0%;
-        background: linear-gradient(to right, #c8a96e, #e8c880);
-        z-index: 2147483646;
-        transition: width 0.15s ease;
-        pointer-events: none;
-      }
-    `;
-
-    function applyTCY(node) {
+    // ===== 縦中横 =====
+    let tcyApplied = false;
+    const processTCY = (node) => {
       if (node.nodeType === Node.ELEMENT_NODE) {
-        if (['RUBY','RT','RP'].includes(node.tagName)) return node.cloneNode(true);
-        const clone = node.cloneNode(false);
-        for (const child of node.childNodes) clone.appendChild(applyTCY(child));
-        return clone;
+        if (['RUBY','RT','RP','SCRIPT','STYLE'].includes(node.tagName)) return;
+        if (node.classList?.contains('tcy')) return;
+        for (const child of [...node.childNodes]) processTCY(child);
+        return;
       }
-      if (node.nodeType !== Node.TEXT_NODE) return node.cloneNode(true);
+      if (node.nodeType !== Node.TEXT_NODE) return;
       const text = node.textContent;
-      const pattern = /(\d{2}|[!?！？]{2})/g;
+      const pat = /(\d{2}|[!?！？]{2})/g;
+      if (!pat.test(text)) return;
+      pat.lastIndex = 0;
       const frag = document.createDocumentFragment();
       let last = 0, m;
-      while ((m = pattern.exec(text)) !== null) {
+      while ((m = pat.exec(text)) !== null) {
         if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         const span = document.createElement('span');
         span.className = 'tcy';
@@ -182,152 +230,140 @@
         last = m.index + m[0].length;
       }
       if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
-      const w = document.createElement('span');
-      w.appendChild(frag);
-      return w;
-    }
+      node.replaceWith(frag);
+    };
 
-    function transformPara(srcPara) {
-      const p = document.createElement('p');
-      for (const child of srcPara.childNodes) p.appendChild(applyTCY(child));
-      return p;
-    }
+    const setCssVar = (name, value) =>
+      document.documentElement.style.setProperty(name, value);
+    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
-    function buildReadingArea(paraGroups) {
-      const area = document.createElement('div');
-      area.id = 'tate-reading-area';
-      for (const { paras, noteClass } of paraGroups) {
-        if (noteClass) {
-          const label = document.createElement('p');
-          label.className = 'tate-section-label';
-          label.textContent = `── ${noteClass} ──`;
-          area.appendChild(label);
-        }
-        for (const srcPara of paras) area.appendChild(transformPara(srcPara));
-      }
-      return area;
-    }
+    // ===== 状態 =====
+    let activated = false;
+    const state = { vertical: false, locked: DEFAULT_LOCKED, fontSize: DEFAULT_FONT_SIZE, lineHeight: DEFAULT_LINE_HEIGHT };
+    let targets = [];
+    let progressBar = null;
 
-    function escHtml(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+    // ===== 有効化 =====
+    const activate = () => {
+      if (activated) return;
+      injectStyle();
 
-    let active = false, uiVisible = false, uiHideTimer = null;
+      targets = [
+        ...document.querySelectorAll('#novel_honbun'),
+      ];
+      if (targets.length === 0) return;
 
-    function showUI() {
-      document.getElementById('tate-header')?.classList.remove('hidden');
-      document.getElementById('tate-footer')?.classList.remove('hidden');
-      uiVisible = true;
-      clearTimeout(uiHideTimer);
-      uiHideTimer = setTimeout(hideUI, 4000);
-    }
-
-    function hideUI() {
-      document.getElementById('tate-header')?.classList.add('hidden');
-      document.getElementById('tate-footer')?.classList.add('hidden');
-      uiVisible = false;
-      clearTimeout(uiHideTimer);
-    }
-
-    function activate() {
-      if (active) return;
-
-      if (!document.getElementById('tate-overlay-css')) {
-        const s = document.createElement('style');
-        s.id = 'tate-overlay-css'; s.textContent = CSS;
-        document.head.appendChild(s);
+      // 縦書き適用
+      document.documentElement.classList.add(ROOT_ON_CLASS);
+      targets.forEach(el => el.classList.add(VERTICAL_CLASS));
+      if (APPLY_TCY && !tcyApplied) {
+        tcyApplied = true;
+        targets.forEach(el => processTCY(el));
       }
 
-      const seriesTitle  = document.querySelector('.p-novel__series-title')?.textContent?.trim() ?? '';
-      const episodeTitle = document.querySelector('.p-novel__subtitle')?.textContent?.trim() ?? '';
-      const prevHref     = document.querySelector('.p-novel__foot--prev')?.href ?? '';
-      const nextHref     = document.querySelector('.p-novel__foot--next')?.href ?? '';
-      const tocHref      = document.querySelector('.p-novel__series-title a')?.href ?? '';
+      // 固定モード
+      if (state.locked) document.documentElement.classList.add(ROOT_LOCK_CLASS);
 
-      const paraGroups = [];
+      state.vertical = true;
+      state.locked = DEFAULT_LOCKED;
 
-      const beforeEl = document.querySelector('.p-novel__text--before');
-      if (beforeEl) {
-        const paras = [...beforeEl.querySelectorAll('p')].filter(p => p.textContent.trim());
-        if (paras.length) paraGroups.push({ paras, noteClass: '前書き' });
+      // 進捗バー
+      if (!progressBar) {
+        progressBar = document.createElement('div');
+        progressBar.id = 'tg-progress-bar';
+        document.body.appendChild(progressBar);
       }
-
-      const bodyEl = document.querySelector('#novel_honbun');
-      if (bodyEl) {
-        const paras = [...bodyEl.querySelectorAll('p')].filter(p => p.textContent.trim());
-        if (paras.length) paraGroups.push({ paras, noteClass: '' });
-      }
-
-      const afterEl = document.querySelector('.p-novel__text--after');
-      if (afterEl) {
-        const paras = [...afterEl.querySelectorAll('p')].filter(p => p.textContent.trim());
-        if (paras.length) paraGroups.push({ paras, noteClass: '後書き' });
-      }
-
-      if (!paraGroups.length) return;
-
-      const overlay = document.createElement('div');
-      overlay.id = 'tate-overlay';
-      const readingArea = buildReadingArea(paraGroups);
-      overlay.appendChild(readingArea);
-      document.body.appendChild(overlay);
-
-      const header = document.createElement('div');
-      header.id = 'tate-header';
-      header.innerHTML = `
-        <span id="tate-series-title">${escHtml(seriesTitle)}</span>
-        <span id="tate-episode-title">${escHtml(episodeTitle)}</span>
-        <button id="tate-btn-close">✕</button>
-      `;
-      document.body.appendChild(header);
-
-      const footer = document.createElement('div');
-      footer.id = 'tate-footer';
-      footer.innerHTML = `
-        <button id="tate-btn-prev" ${prevHref ? '' : 'disabled'}>‹ 前の話</button>
-        <button id="tate-btn-toc"  ${tocHref  ? '' : 'disabled'}>目次</button>
-        <span id="tate-progress">0%</span>
-        <button id="tate-btn-next" ${nextHref ? '' : 'disabled'}>次の話 ›</button>
-      `;
-      document.body.appendChild(footer);
-
-      const progressBar = document.createElement('div');
-      progressBar.id = 'tate-progress-bar';
-      document.body.appendChild(progressBar);
-
-      const progressEl = document.getElementById('tate-progress');
-      readingArea.addEventListener('scroll', () => {
-        const max = readingArea.scrollWidth - readingArea.clientWidth;
-        if (max <= 0) return;
-        const pct = Math.round(readingArea.scrollLeft / max * 100);
-        if (progressEl) progressEl.textContent = `${pct}%`;
-        progressBar.style.width = `${pct}%`;
-        clearTimeout(uiHideTimer);
-        if (uiVisible) uiHideTimer = setTimeout(hideUI, 4000);
-      }, { passive: true });
-
-      readingArea.addEventListener('click', () => {
-        if (uiVisible) hideUI();
-        else showUI();
+      targets.forEach(el => {
+        el.addEventListener('scroll', () => {
+          const max = el.scrollWidth - el.clientWidth;
+          if (max <= 0 || !progressBar) return;
+          progressBar.style.width = `${el.scrollLeft / max * 100}%`;
+        }, { passive: true });
       });
 
-      document.getElementById('tate-btn-close')?.addEventListener('click', e => { e.stopPropagation(); deactivate(); });
-      document.getElementById('tate-btn-prev')?.addEventListener('click', e => { e.stopPropagation(); if (prevHref) alert('前の話へ: ' + prevHref); });
-      document.getElementById('tate-btn-next')?.addEventListener('click', e => { e.stopPropagation(); if (nextHref) alert('次の話へ: ' + nextHref); });
-      document.getElementById('tate-btn-toc')?.addEventListener('click', e => { e.stopPropagation(); if (tocHref) alert('目次へ: ' + tocHref); });
+      // パネル
+      if (!document.getElementById('tg-panel')) {
+        const panel = document.createElement('div');
+        panel.id = 'tg-panel';
+        panel.classList.add(`tg-pos-${PANEL_SIDE}`);
 
-      active = true;
-      showUI();
-    }
+        const makeBtn = (label, onClick) => {
+          const btn = document.createElement('button');
+          btn.textContent = label;
+          btn.addEventListener('click', onClick);
+          return btn;
+        };
 
-    function deactivate() {
-      clearTimeout(uiHideTimer);
-      document.getElementById('tate-overlay')?.remove();
-      document.getElementById('tate-header')?.remove();
-      document.getElementById('tate-footer')?.remove();
-      document.getElementById('tate-progress-bar')?.remove();
-      active = false;
-    }
+        const toggleBtn = makeBtn('横', () => {
+          state.vertical = !state.vertical;
+          document.documentElement.classList.toggle(ROOT_ON_CLASS, state.vertical);
+          targets.forEach(el => el.classList.toggle(VERTICAL_CLASS, state.vertical));
+          toggleBtn.textContent = state.vertical ? '横' : '縦';
+        });
+
+        const lockBtn = makeBtn(state.locked ? '解除' : '固定', () => {
+          state.locked = !state.locked;
+          document.documentElement.classList.toggle(ROOT_LOCK_CLASS, state.locked);
+          lockBtn.textContent = state.locked ? '解除' : '固定';
+        });
+
+        panel.append(
+          toggleBtn, lockBtn,
+          makeBtn('字＋', () => {
+            state.fontSize = Number(clamp(state.fontSize + 0.1, 0.7, 2.2).toFixed(2));
+            setCssVar('--tg-font-size', `${state.fontSize}rem`);
+          }),
+          makeBtn('字－', () => {
+            state.fontSize = Number(clamp(state.fontSize - 0.1, 0.7, 2.2).toFixed(2));
+            setCssVar('--tg-font-size', `${state.fontSize}rem`);
+          }),
+          makeBtn('間＋', () => {
+            state.lineHeight = Number(clamp(state.lineHeight + 0.15, 1.2, 3.0).toFixed(2));
+            setCssVar('--tg-line-height', String(state.lineHeight));
+          }),
+          makeBtn('間－', () => {
+            state.lineHeight = Number(clamp(state.lineHeight - 0.15, 1.2, 3.0).toFixed(2));
+            setCssVar('--tg-line-height', String(state.lineHeight));
+          }),
+          makeBtn('目次', () => alert('目次: デモでは #toc へ')),
+        );
+        document.body.appendChild(panel);
+      }
+
+      // 次/前ボタン
+      if (!document.getElementById('tg-nav')) {
+        const prevUrl = document.querySelector('.p-novel__foot--prev')?.href;
+        const nextUrl = document.querySelector('.p-novel__foot--next')?.href;
+        if (prevUrl || nextUrl) {
+          const nav = document.createElement('div');
+          nav.id = 'tg-nav';
+          const makeNavItem = (cls, label, url) => {
+            const el = document.createElement(url ? 'a' : 'span');
+            el.className = url ? cls : `${cls} tg-disabled`;
+            el.textContent = label;
+            if (url) { el.href = url; el.addEventListener('click', e => { e.preventDefault(); alert(`${label}: ${url}`); }); }
+            return el;
+          };
+          nav.append(
+            makeNavItem('tg-next', '次の話 ›', nextUrl),
+            makeNavItem('tg-prev', '‹ 前の話', prevUrl),
+          );
+          document.body.appendChild(nav);
+        }
+      }
+
+      activated = true;
+    };
+
+    const deactivate = () => {
+      document.documentElement.classList.remove(ROOT_ON_CLASS, ROOT_LOCK_CLASS);
+      targets.forEach(el => el.classList.remove(VERTICAL_CLASS));
+      document.getElementById('tg-panel')?.remove();
+      document.getElementById('tg-nav')?.remove();
+      if (progressBar) { progressBar.remove(); progressBar = null; }
+      activated = false;
+      state.vertical = false;
+    };
 
     document.getElementById('btn-on').addEventListener('click', activate);
     document.getElementById('btn-off').addEventListener('click', deactivate);
