@@ -1,0 +1,25 @@
+name: Sync to gh-pages
+
+on:
+  push:
+    branches:
+      - claude/safari-extension-dev-r7ui4n
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge dev branch into gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout gh-pages
+          git merge --no-edit origin/claude/safari-extension-dev-r7ui4n
+          git push origin gh-pages
